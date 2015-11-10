@@ -364,3 +364,4 @@ class ChoiceItemListener implements ItemListener  {
     println("selected:" + item[targetdevice]);
   }
 }
+
