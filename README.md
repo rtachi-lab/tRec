@@ -1,8 +1,8 @@
 # tRec (triggered recorder)
-"tRed" detects birdsongs and records them into audio files (WAV).
-This software has been developed for recording finches's songs that are placed in isolated recording chambers. 
-To save computer storage, tRec records only singing periods by detecting sucessive sound elements (such as "pi pi pi pi ...").
-I developed this with Processing/Java programming language.
+"tRed" detects birdsongs and records them into audio files (WAV).  
+This software has been developed for recording finches's songs that are placed in isolated recording chambers.  
+To save computer storage, tRec records only singing periods by detecting sucessive sound elements (such as "pi pi pi pi ..."). 
+Originally it has been developed with Processing/Java programming language.
 
 <img src="img1.png" width="243" height="268">
 
