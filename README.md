@@ -4,6 +4,8 @@ This software has been developed for recording finches's songs that are placed i
 To save computer storage, tRec records only singing periods by detecting sucessive sound elements (such as "pi pi pi pi ...").
 I developed this with Processing/Java programming language.
 
+<img src="img1.png" width="243" height="268">
+
 ### Recording spec
 - 32 kHz sampling, 16 bit resolution
 - PCM waveform (WAV) files
