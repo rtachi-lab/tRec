@@ -78,12 +78,10 @@ int bitDepth = 16;
 int transBufferSize = 1024; 
 int analysisWindowSize = 256;
 int analysisTimeStep = 128;
-//int yinParam = 100; // lower limit: 320 Hz. Must be smaller than analysisWindowSize
 int yinParam = 100; // lower limit: 1000 Hz. Must be smaller than analysisWindowSize
 int maxRecordDuration = 30;
 int dispDuration = 2;
 int datalineBufferSize = transBufferSize *4*8;
-int flgvpddur = 10; // 10*16? ms
 int margin = 200; // 200 ms
 
 // display setting
@@ -194,10 +192,9 @@ public void draw() {
     // data fetch
     float[]envL = rtproc.getEnvL();
     float[]envR = rtproc.getEnvR();
-    float[]hrmL = rtproc.getPrdL();
-    float[]hrmR = rtproc.getPrdR();
+    float[]prdL = rtproc.getPrdL();
+    float[]prdR = rtproc.getPrdR();
     int ap = rtproc.getAnaPointer();
-    int edrawsize = dispDuration*(sampleRate/analysisTimeStep);
     int envsize = envL.length;
     int syldurL = rtproc.getSylDurL();
     int gapdurL = rtproc.getGapDurL();
@@ -216,29 +213,29 @@ public void draw() {
     noFill();
     stroke(255,255,0);
     beginShape();
-    for ( int i = 0; i < edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH/4-dBmag*(envL[(ap+i+(envsize-edrawsize))%envsize]-dBcenter));
+    for ( int i = 0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH/4-dBmag*(envL[(ap+i)%envsize]-dBcenter));
     }
     endShape();
     // periodicity L
     stroke(0,255,255);
     beginShape();
-    for ( int i=0; i<edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH/2-(hrmL[(ap+i+(envsize-edrawsize))%envsize]*0.4f+10));
+    for ( int i=0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH/2-(prdL[(ap+i)%envsize]*0.4f+10));
     }
     endShape();
     // envelope R
     stroke(255,255,0);
     beginShape();
-    for ( int i = 0; i < edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH/4*3-dBmag*(envR[(ap+i+(envsize-edrawsize))%envsize]-dBcenter));      
+    for ( int i = 0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH/4*3-dBmag*(envR[(ap+i)%envsize]-dBcenter));      
     }
     endShape();
     // periodicity R
     stroke(0,255,255);
     beginShape();
-    for ( int i=0; i<edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH-(hrmR[(ap+i+(envsize-edrawsize))%envsize]*0.4f+10));
+    for ( int i=0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH-(prdR[(ap+i)%envsize]*0.4f+10));
     }
     endShape();
     // thresholds
@@ -612,7 +609,7 @@ class RTProcess extends Thread {
   private float[] window,wL,wR;
   private double[] A,B,xLp,xRp,yLp,yRp;
   private int wavptr, anaptr, recptr;
-  private int timetick,tbsize, awsize, rbsize, atstep, absize;
+  private int timetick,tbsize, awsize, rbsize, atstep, wbsize,absize;
   private int waitingbytes;
   private long starttime,inputcnt;
   private boolean running,flgOnL, flgOnR;
@@ -621,16 +618,17 @@ class RTProcess extends Thread {
   RTProcess(AudioFormat af, Mixer.Info mi) {
     atstep = analysisTimeStep;
     awsize = analysisWindowSize;
-    tbsize = transBufferSize;              // transfer buffer size (in samples)
+    tbsize = transBufferSize;                // transfer buffer size (in samples)
     rbsize = floor(maxRecordDuration*sampleRate/tbsize)*tbsize; // recording buffer size (in samples)
-    absize = rbsize/atstep;                // analyzed buffer size
-    timetick = atstep*1000/sampleRate; // 4 ms
+    wbsize = floor(dispDuration*sampleRate/tbsize)*tbsize; // display buffer size
+    absize = wbsize/atstep;                  // analyzed buffer size
+    timetick = atstep*1000/sampleRate;       // 4 ms
     transBuff = new byte[tbsize*bitDepth/8*2];
     recordBuff = new byte[rbsize*bitDepth/8*2];
-    waveformL = new float[rbsize];
-    waveformR = new float[rbsize];
-    filteredL = new float[rbsize];
-    filteredR = new float[rbsize];
+    waveformL = new float[wbsize];
+    waveformR = new float[wbsize];
+    filteredL = new float[wbsize];
+    filteredR = new float[wbsize];
     envelopeL = new float[absize];
     envelopeR = new float[absize];
     periodicL = new float[absize];
@@ -723,6 +721,8 @@ class RTProcess extends Thread {
   public void run () {
     while (running) {
       // transfer interval should be 32 ms (1024/32000)
+      //  sleep for 8 ms to avoid contenous asking dataline avialbility
+      try { sleep(8); } catch (Exception e) { } 
       try {
         int avb = inputdataline.available();
         waitingbytes = avb;
@@ -753,10 +753,10 @@ class RTProcess extends Thread {
             }
             xLp[0] = xL; xRp[0] = xR;
             yLp[0] = yL; yRp[0] = yR;
-            waveformL[(wavptr+i)%rbsize] = (float)xL;
-            waveformR[(wavptr+i)%rbsize] = (float)xR;
-            filteredL[(wavptr+i)%rbsize] = (float)yL;
-            filteredR[(wavptr+i)%rbsize] = (float)yR;
+            waveformL[(wavptr+i)%wbsize] = (float)xL;
+            waveformR[(wavptr+i)%wbsize] = (float)xR;
+            filteredL[(wavptr+i)%wbsize] = (float)yL;
+            filteredR[(wavptr+i)%wbsize] = (float)yR;
           }
           // Process for every analysis timestep
           for(int s=0; s<tbsize/atstep; s++) {
@@ -764,13 +764,13 @@ class RTProcess extends Thread {
             double sumL = 0.0f, sumR = 0.0f;
             for(int n=0; n<awsize; n++) {
               int idx = wavptr+(s+1)*atstep-awsize;
-              wL[n] = filteredL[(idx+n+rbsize)%rbsize]*window[n];
-              wR[n] = filteredR[(idx+n+rbsize)%rbsize]*window[n];
+              wL[n] = filteredL[(idx+n+wbsize)%wbsize]*window[n];
+              wR[n] = filteredR[(idx+n+wbsize)%wbsize]*window[n];
               sumL += (double)wL[n]*wL[n];
               sumR += (double)wR[n]*wR[n];
             }
-            float eL = 10.0f*log((float)(sumL/awsize))/2.3026f; // log(10) = 2.3026
-            float eR = 10.0f*log((float)(sumR/awsize))/2.3026f;            
+            float eL = 10.0f*log((float)(sumL/awsize))/log(10);
+            float eR = 10.0f*log((float)(sumR/awsize))/log(10);            
             // YIN algorithm for detecting periodicity and f0
             float tempL = 0.0f, tempR = 0.0f;
             float minvalL = 1.0f, minvalR = 1.0f;
@@ -804,27 +804,28 @@ class RTProcess extends Thread {
           }
           // pointer increment
           anaptr = (anaptr+(tbsize/atstep))%absize;
-          wavptr = (wavptr+tbsize)%rbsize;
+          wavptr = (wavptr+tbsize)%wbsize;
+          // recording
+          if (SD1.getRecordState()) {
+            long onset = SD1.getSongOnsetCount();
+            long offset = SD1.getSongOffsetCount();
+            byte[] recbytes = getRecordBytes(inputcnt,onset,offset);
+            long onsettime = starttime+onset*timetick-margin;
+            record = new Recording(recbytes,onsettime,true);
+            record.start();
+          }
+          if (!flgStereo) {
+            if (SD2.getRecordState()) {
+              long onset = SD1.getSongOnsetCount();
+              long offset = SD1.getSongOffsetCount();
+              byte[] recbytes = getRecordBytes(inputcnt,onset,offset);
+              long onsettime = starttime+onset*timetick-margin;
+              record = new Recording(recbytes,onsettime,false);
+              record.start();
+            }
+          }
         }
       } catch (Exception e) { println(e); }
-      if (SD1.getRecordState()) {
-        long onset = SD1.getSongOnsetCount();
-        long offset = SD1.getSongOffsetCount();
-        byte[] recbytes = getRecordBytes(inputcnt,onset,offset);
-        long onsettime = starttime+onset*timetick;
-        record = new Recording(recbytes,onsettime,true);
-        record.start();
-      }
-      if (!flgStereo) {
-        if (SD2.getRecordState()) {
-          long onset = SD1.getSongOnsetCount();
-          long offset = SD1.getSongOffsetCount();
-          byte[] recbytes = getRecordBytes(inputcnt,onset,offset);
-          long onsettime = starttime+onset*timetick;
-          record = new Recording(recbytes,onsettime,false);
-          record.start();
-        }
-      }
     }
   }
 }
