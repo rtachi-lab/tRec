@@ -32,23 +32,23 @@ int prevtime, flgvpdcnt;
 boolean flgStereo,flgStart, flgRefresh, flgVocalDetect;
 
 // audio settings
-//   read audio buffer every 32ms (=1024/32000)
-//   windowsize = 256 (8ms)
-//   timestep = 128 (4ms)
+//   read audio dataline buffer every 32 ms (=1024/32000)
+//   windowsize: 256 (8 ms)
+//   timestep: 64 (2 ms)
 //   maximum recordable duration: 30 seconds
 //   display duration: 2 seconds
 //   dataline buffer is 8 times larger than transfer buffer (1024*4bytes*8)
-//      this should not relate with the latancy
+//      this should not affect the latancy
 int sampleRate = 32000;
 int bitDepth = 16;
 int transBufferSize = 1024; 
 int analysisWindowSize = 256;
-int analysisTimeStep = 128;
+int analysisTimeStep = 64;
 int yinParam = 100; // lower limit: 1000 Hz. Must be smaller than analysisWindowSize
 int maxRecordDuration = 30;
 int dispDuration = 2;
 int datalineBufferSize = transBufferSize *4*8;
-int margin = 200; // 200 ms
+int margin = 200; // 200 ms margin will be inserted at the song onset
 
 // display setting
 int gW = 345;
