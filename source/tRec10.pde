@@ -44,12 +44,10 @@ int bitDepth = 16;
 int transBufferSize = 1024; 
 int analysisWindowSize = 256;
 int analysisTimeStep = 128;
-//int yinParam = 100; // lower limit: 320 Hz. Must be smaller than analysisWindowSize
 int yinParam = 100; // lower limit: 1000 Hz. Must be smaller than analysisWindowSize
 int maxRecordDuration = 30;
 int dispDuration = 2;
 int datalineBufferSize = transBufferSize *4*8;
-int flgvpddur = 10; // 10*16? ms
 int margin = 200; // 200 ms
 
 // display setting
@@ -160,10 +158,9 @@ void draw() {
     // data fetch
     float[]envL = rtproc.getEnvL();
     float[]envR = rtproc.getEnvR();
-    float[]hrmL = rtproc.getPrdL();
-    float[]hrmR = rtproc.getPrdR();
+    float[]prdL = rtproc.getPrdL();
+    float[]prdR = rtproc.getPrdR();
     int ap = rtproc.getAnaPointer();
-    int edrawsize = dispDuration*(sampleRate/analysisTimeStep);
     int envsize = envL.length;
     int syldurL = rtproc.getSylDurL();
     int gapdurL = rtproc.getGapDurL();
@@ -182,29 +179,29 @@ void draw() {
     noFill();
     stroke(255,255,0);
     beginShape();
-    for ( int i = 0; i < edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH/4-dBmag*(envL[(ap+i+(envsize-edrawsize))%envsize]-dBcenter));
+    for ( int i = 0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH/4-dBmag*(envL[(ap+i)%envsize]-dBcenter));
     }
     endShape();
     // periodicity L
     stroke(0,255,255);
     beginShape();
-    for ( int i=0; i<edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH/2-(hrmL[(ap+i+(envsize-edrawsize))%envsize]*0.4+10));
+    for ( int i=0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH/2-(prdL[(ap+i)%envsize]*0.4+10));
     }
     endShape();
     // envelope R
     stroke(255,255,0);
     beginShape();
-    for ( int i = 0; i < edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH/4*3-dBmag*(envR[(ap+i+(envsize-edrawsize))%envsize]-dBcenter));      
+    for ( int i = 0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH/4*3-dBmag*(envR[(ap+i)%envsize]-dBcenter));      
     }
     endShape();
     // periodicity R
     stroke(0,255,255);
     beginShape();
-    for ( int i=0; i<edrawsize; i++ ) {
-      vertex( pX+1+i*pW/edrawsize, pY+pH-(hrmR[(ap+i+(envsize-edrawsize))%envsize]*0.4+10));
+    for ( int i=0; i < envsize; i++ ) {
+      vertex( pX+1+i*pW/envsize, pY+pH-(prdR[(ap+i)%envsize]*0.4+10));
     }
     endShape();
     // thresholds
