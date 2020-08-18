@@ -30,7 +30,7 @@
 ### Additional information
 #### Signal processing in tRec
 (still writing...)
-- time step and window size (4-ms time step)
+- analysis window size: 256 samples (8 ms) / time step: 64 samples (2 ms)
 - band-pass filtering (1000-8000)
 - amplitude envelope calculation
 - periodicity calculation: YIN
